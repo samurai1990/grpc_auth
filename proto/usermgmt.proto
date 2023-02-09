@@ -3,7 +3,7 @@ syntax = "proto3";
 package usermgmt;
 
 
-option go_package = "../go-usermgmt-grpc";
+option go_package = ".;pb";
 
 
 service UserManagement { 
