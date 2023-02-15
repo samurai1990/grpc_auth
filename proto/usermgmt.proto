@@ -3,7 +3,7 @@ syntax = "proto3";
 package usermgmt;
 
 
-option go_package = "../go-usermgmt-grpc";
+option go_package = ".;pb";
 
 
 service UserManagement { 
@@ -19,4 +19,4 @@ message User {
   string name = 1;
   int32 age=2;
   int32 id=3;
-} 
+}
