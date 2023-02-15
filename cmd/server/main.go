@@ -25,17 +25,17 @@ func (s *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Newuser
 	return &pb.User{Name: in.GetName(), Age: in.GetAge(), Id: user_id}, nil
 }
 
-func unaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler) (interface{}, error) {
-	log.Println("--> unary interceptor: ", info.FullMethod)
-	return handler(ctx, req)
-}
+// func unaryInterceptor(
+// 	ctx context.Context,
+// 	req interface{},
+// 	info *grpc.UnaryServerInfo,
+// 	handler grpc.UnaryHandler) (interface{}, error) {
+// 	log.Println("--> unary interceptor: ", info.FullMethod)
+// 	return handler(ctx, req)
+// }
 
 const (
-	secretKey     = "secret"
+	secretKey     = "secrettest"
 	tokenDuration = 15 * time.Minute
 )
 
@@ -45,7 +45,6 @@ func seedUser(userStore service.UserStore) error {
 		return err
 	}
 	return createUser(userStore, "user1", "user", "user")
-
 }
 
 func createUser(userStore service.UserStore, username string, password string, role string) error {
@@ -56,19 +55,27 @@ func createUser(userStore service.UserStore, username string, password string, r
 	return userStore.Save(user)
 }
 
+func accessibleRoles() map[string][]string {
+	const userManagePath = "/usermgmt.UserManagement/"
+	return map[string][]string{
+		userManagePath + "CreateNewUser": {"admin"},
+		userManagePath + "ListNewUser":   {"admin", "user"},
+	}
+
+}
+
 func main() {
 	port := flag.Int("port", 0, "the server port")
 	flag.Parse()
 	log.Printf("start server on port %d:", *port)
 
 	userStore := service.NewInMemoryUserStore()
-	jwtManager := service.NewJWTManager(secretKey, tokenDuration)
-	authServer := service.NewAuthServer(userStore, jwtManager)
-
 	err := seedUser(userStore)
 	if err != nil {
 		log.Fatal("cannot seed users")
 	}
+	jwtManager := service.NewJWTManager(secretKey, tokenDuration)
+	authServer := service.NewAuthServer(userStore, jwtManager)
 
 	address := fmt.Sprintf("0.0.0.0:%d", *port)
 	listener, err := net.Listen("tcp", address)
@@ -76,8 +83,9 @@ func main() {
 		log.Fatal("cannot start server: ", err)
 	}
 
+	interceptor := service.NewAuthInterceptor(jwtManager, accessibleRoles())
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(unaryInterceptor),
+		grpc.UnaryInterceptor(interceptor.Unary()),
 	)
 	reflection.Register(grpcServer)
 	pb.RegisterAuthServiceServer(grpcServer, authServer)
