@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"flag"
+	"go-usermgmt-grpc/client"
 	"go-usermgmt-grpc/pb"
 	"log"
 	"time"
@@ -10,6 +10,28 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+const (
+	username        = "admin1"
+	password        = "admin"
+	refreshDuration = 30 * time.Second
+)
+
+func testCreateuser(userClient *client.UserClient){
+	newUser := &pb.Newuser{
+		Name: "piter",
+		Age: 25,
+	}
+	userClient.CreateUser(newUser)
+}
+
+func authMethods() map[string]bool {
+	const userManagePath = "/usermgmt.UserManagement/"
+	return map[string]bool{
+		userManagePath + "CreateNewUser": true,
+		userManagePath + "ListNewUser":   true,
+	}
+}
 
 func main() {
 	serverAddress := flag.String("address", "", "the server address")
@@ -20,24 +42,22 @@ func main() {
 	if err != nil {
 		log.Fatal("cannnot dial server: ", err)
 	}
-	defer conn.Close()
 
-	c := pb.NewUserManagementClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	var new_users = make(map[string]int32)
-	new_users["alice"] = 43
-	new_users["bob"] = 30
-	for name, age := range new_users {
-		r, err := c.CreateNewUser(ctx, &pb.Newuser{Name: name, Age: age})
-		if err != nil {
-			log.Fatal("could not create user: ", err)
-		}
-		log.Printf(`User Details:
-		NAME: %s
-		AGE: %d
-		ID: %d`, r.GetName(), r.GetAge(), r.GetId())
+	authClient := client.NewAuthClient(conn, username, password)
+	interceptor, err := client.NewAuthInterceptor(authClient, authMethods(), refreshDuration)
+	if err != nil {
+		log.Fatal("connot create auth interceptor: ", err)
 	}
+	cc2, err := grpc.Dial(
+		*serverAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptor.Unary()),
+	)
+	if err != nil {
+		log.Fatal("cannot dial server: ", err)
+	}
+	userClient := client.NewUserClient(cc2)
+	testCreateuser(userClient)
+
 
 }
