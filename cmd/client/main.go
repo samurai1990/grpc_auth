@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"go-usermgmt-grpc/client"
+
 	"go-usermgmt-grpc/pb"
 	"log"
 	"time"
@@ -17,10 +18,10 @@ const (
 	refreshDuration = 30 * time.Second
 )
 
-func testCreateuser(userClient *client.UserClient){
+func testCreateuser(userClient *client.UserClient) {
 	newUser := &pb.Newuser{
 		Name: "piter",
-		Age: 25,
+		Age:  25,
 	}
 	userClient.CreateUser(newUser)
 }
@@ -58,6 +59,4 @@ func main() {
 	}
 	userClient := client.NewUserClient(cc2)
 	testCreateuser(userClient)
-
-
 }
