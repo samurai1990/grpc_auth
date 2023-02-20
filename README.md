@@ -13,14 +13,25 @@ $ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 ### Regenerate gRPC code
 Before you can use the new service method, you need to recompile the updated .proto file.
 
-```
-$ protoc --go_out=. --go_opt=paths=source_relative \
-    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    proto/usermgmt.proto
-```
+`$ protoc --proto_path=proto proto/*.proto  --go_out=:pb --go-grpc_out=:pb`
+OR
+`$ make gen`
+
 
 
 ### requirements
 
 - install Evans :
-`go install github.com/ktr0731/evans@latest`
+`$ go install github.com/ktr0731/evans@latest`
+
+- Install the `uuid-ossp` extension postgresql:
+`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
+
+
+##### set environment
+```
+export POSTGRES_DEVELOP_DB_USERNAME=myuser
+export POSTGRES_DEVELOP_DB_PASSWORD=mypassword
+export POSTGRES_DEVELOP_DB_NAME=test_db
+```
+
