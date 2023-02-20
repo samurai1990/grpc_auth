@@ -4,15 +4,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"go-usermgmt-grpc/db"
+	"go-usermgmt-grpc/db/handlers"
+	user "go-usermgmt-grpc/db/models"
 	"go-usermgmt-grpc/pb"
 	"go-usermgmt-grpc/service"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"math/rand"
 	"net"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 type UserManagementServer struct {
@@ -24,15 +26,6 @@ func (s *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.Newuser
 	var user_id int32 = int32(rand.Intn(1000))
 	return &pb.User{Name: in.GetName(), Age: in.GetAge(), Id: user_id}, nil
 }
-
-// func unaryInterceptor(
-// 	ctx context.Context,
-// 	req interface{},
-// 	info *grpc.UnaryServerInfo,
-// 	handler grpc.UnaryHandler) (interface{}, error) {
-// 	log.Println("--> unary interceptor: ", info.FullMethod)
-// 	return handler(ctx, req)
-// }
 
 const (
 	secretKey     = "secrettest"
@@ -64,7 +57,22 @@ func accessibleRoles() map[string][]string {
 
 }
 
+func CreateAdmin() {
+	DB := db.Init()
+	h := handlers.NewDB(DB)
+	user := user.Accounts{
+		Username:  "piter",
+		Password:  "password",
+		Email:     "piter@tets.co",
+		IsActive:  true,
+		IsDeleted: false,
+		IsAdmin:   true,
+	}
+	h.CreateUser(&user)
+}
+
 func main() {
+	CreateAdmin()
 	port := flag.Int("port", 0, "the server port")
 	flag.Parse()
 	log.Printf("start server on port %d:", *port)
