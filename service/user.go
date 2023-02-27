@@ -1,41 +1,34 @@
 package service
 
 import (
-	"fmt"
-
-	"golang.org/x/crypto/bcrypt"
+	"go-usermgmt-grpc/db"
+	"go-usermgmt-grpc/db/models"
 )
 
-type User struct {
-	Username       string
-	HashedPassword string
-	Role           string
-}
-
-func NewUser(username string, password string, role string) (*User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func CreateUser(userStore db.UserStoreInterface, username string, password string, email string, isAdmin bool, isActive bool) (*models.Users, error) {
+	newUser, err := models.NewUser(username, password, email, isAdmin, isActive)
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash password: %w", err)
+		return nil, err
 	}
-	user := &User{
-		Username:       username,
-		HashedPassword: string(hashedPassword),
-		Role:           role,
+	user, err := userStore.Save(newUser)
+	if err != nil {
+		return nil, err
 	}
 	return user, nil
 }
 
-func (user *User) IsCorrectPassword(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(password))
-	return err == nil
-
-}
-
-func (user *User) Clone() *User {
-	return &User{
-		Username:       user.Username,
-		HashedPassword: user.HashedPassword,
-		Role:           user.Role,
+func FindUser(serStore db.UserStoreInterface, username string) *models.Users {
+	user, err := serStore.Find(username)
+	if err != nil {
+		return nil
 	}
+	return user
 }
 
+// func (user *User) Clone() *User {
+// 	return &User{
+// 		Username:       user.Username,
+// 		HashedPassword: user.HashedPassword,
+// 		Role:           user.Role,
+// 	}
+// }
