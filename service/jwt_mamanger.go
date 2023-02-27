@@ -2,8 +2,9 @@ package service
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"go-usermgmt-grpc/db/models"
 	"time"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type JWTManager struct {
@@ -12,9 +13,9 @@ type JWTManager struct {
 }
 
 type UserClaims struct {
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 	Username string `json:"username"`
-	Role     string `json:"role"`
+	IsAdmin  bool   `json:"is_admin"`
 }
 
 func NewJWTManager(secretkey string, tokenDuration time.Duration) *JWTManager {
@@ -24,17 +25,20 @@ func NewJWTManager(secretkey string, tokenDuration time.Duration) *JWTManager {
 	}
 }
 
-func (manager *JWTManager) Generate(user *User) (string, error) {
+func (manager *JWTManager) Generate(user *models.Users) (string, error) {
 	claims := UserClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(manager.tokenDuration).Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(manager.tokenDuration)),
 		},
 		Username: user.Username,
-		Role:     user.Role,
+		IsAdmin:  user.IsAdmin,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(manager.secretKey))
-
+	ss, err := token.SignedString([]byte(manager.secretKey))
+	if err != nil {
+		return "", err
+	}
+	return ss, nil
 }
 
 func (manager *JWTManager) Verify(accessToken string) (*UserClaims, error) {
