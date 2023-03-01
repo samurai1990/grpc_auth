@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = ".;pb";
+
+import "message_user.proto";
+
+message ListUserRequest { }
+
+message ListUserRespose { repeated User users = 1; }

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = ".;pb";
+
+message User {
+  string Username = 1;
+  string Password = 2;
+  string Email = 3;
+  bool IsAdmin = 4;
+  bool IsActive = 5;
+  string Id = 6;
+}

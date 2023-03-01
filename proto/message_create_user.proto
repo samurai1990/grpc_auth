@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package pb;
+
+import "message_user.proto";
+
+option go_package = ".;pb";
+
+message CreateUserRequest { User user = 1; }
+
+message CreateUserResponse {
+  string Id = 1;
+  string Username = 2;
+  string Email = 3;
+  bool IsAdmin = 4;
+  bool IsActive = 5;
+}
