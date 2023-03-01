@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"go-usermgmt-grpc/client"
-
-	"go-usermgmt-grpc/pb"
 	"log"
 	"time"
 
@@ -13,24 +11,16 @@ import (
 )
 
 const (
-	username        = "admin1"
-	password        = "admin"
+	username        = "test"
+	password        = "test"
 	refreshDuration = 30 * time.Second
 )
 
-func testCreateuser(userClient *client.UserClient) {
-	newUser := &pb.Newuser{
-		Name: "piter",
-		Age:  25,
-	}
-	userClient.CreateUser(newUser)
-}
-
 func authMethods() map[string]bool {
-	const userManagePath = "/usermgmt.UserManagement/"
+	const userManagePath = "/pb.Accounts/"
 	return map[string]bool{
 		userManagePath + "CreateNewUser": true,
-		userManagePath + "ListNewUser":   true,
+		userManagePath + "ListUser":      true,
 	}
 }
 
@@ -43,20 +33,29 @@ func main() {
 	if err != nil {
 		log.Fatal("cannnot dial server: ", err)
 	}
+	defer conn.Close()
 
 	authClient := client.NewAuthClient(conn, username, password)
-	interceptor, err := client.NewAuthInterceptor(authClient, authMethods(), refreshDuration)
+	token, err := authClient.Login()
 	if err != nil {
 		log.Fatal("connot create auth interceptor: ", err)
 	}
-	cc2, err := grpc.Dial(
-		*serverAddress,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(interceptor.Unary()),
+	log.Printf("accessToken:%s", token)
+
+	authInterceptor := client.NewAuthInterceptor(authMethods(), token)
+	cc2, err := grpc.Dial(*serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(authInterceptor.UnaryInterceptor()),
 	)
 	if err != nil {
 		log.Fatal("cannot dial server: ", err)
 	}
+	defer cc2.Close()
+
 	userClient := client.NewUserClient(cc2)
-	testCreateuser(userClient)
+	users, err := userClient.ListUser()
+	if err != nil {
+		log.Fatal("cannot list users with error: ", err)
+	}
+	log.Print(users)
+
 }
