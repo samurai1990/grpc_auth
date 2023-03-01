@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"go-usermgmt-grpc/db"
 	"log"
 
 	"google.golang.org/grpc"
@@ -22,27 +23,9 @@ func NewAuthInterceptor(jwtManager *JWTManager, accessibleRole map[string][]stri
 	}
 }
 
-func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler) (interface{}, error) {
-		log.Println("--> unary interceptor: ", info.FullMethod)
-
-		err := interceptor.authorize(ctx, info.FullMethod)
-		if err != nil {
-			return nil, err
-		}
-
-		return handler(ctx, req)
-	}
-}
-
 func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
-	accessibleRole, ok := interceptor.accessibleRole[method]
+	accessibleRoles, ok := interceptor.accessibleRole[method]
 	if !ok {
-
 		return nil
 	}
 
@@ -61,12 +44,30 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 	if err != nil {
 		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
 	}
-
-	for _, role := range accessibleRole {
-		if role == claim.Role {
-			return nil
+	userStore := &db.UserStore{}
+	queryUser := FindUser(userStore, claim.Username)
+	if queryUser == nil {
+		return status.Errorf(codes.NotFound, "user not found")
+	}
+	if queryUser.IsAdmin != claim.IsAdmin {
+		return status.Errorf(codes.InvalidArgument, "malformed token")
+	}
+	for _, role := range accessibleRoles {
+		if role == "is_admin" {
+			if queryUser.IsAdmin {
+				return nil
+			}
 		}
 	}
-
 	return status.Error(codes.PermissionDenied, "no permission to access this RPC")
+}
+
+func (interceptor *AuthInterceptor) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("--> unary interceptor: ", info.FullMethod)
+
+	err := interceptor.authorize(ctx, info.FullMethod)
+	if err != nil {
+		return nil, err
+	}
+	return handler(ctx, req)
 }
