@@ -1,6 +1,5 @@
 package client
 
-
 import (
 	"context"
 	"go-usermgmt-grpc/pb"
@@ -10,13 +9,13 @@ import (
 )
 
 type AuthClient struct {
-	service  pb.AuthServiceClient
+	service  pb.AccountsClient
 	username string
 	password string
 }
 
 func NewAuthClient(cc *grpc.ClientConn, username string, password string) *AuthClient {
-	serive := pb.NewAuthServiceClient(cc)
+	serive := pb.NewAccountsClient(cc)
 	return &AuthClient{
 		service:  serive,
 		username: username,
@@ -32,9 +31,9 @@ func (client *AuthClient) Login() (string, error) {
 		Username: client.username,
 		Password: client.password,
 	}
-	res, err := client.service.Login(ctx, req)
+	res, err := client.service.LoginUser(ctx, req)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return res.GetAccessToken(), nil
 }
