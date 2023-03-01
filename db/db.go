@@ -25,6 +25,7 @@ type UserStoreInterface interface {
 	Save(user *models.Users) (*models.Users, error)
 	Find(username string) (*models.Users, error)
 	Delete(user *models.Users) error
+	List() ([]*models.Users, error)
 }
 
 var ErrAlreadyExists = errors.New("username already exists")
@@ -74,7 +75,7 @@ func (handle *UserStore) Find(username string) (*models.Users, error) {
 		return nil, err
 	}
 	user := handle.user
-	st := newDB.Model(&user).Where("username = ?", username).Take(&user).Error
+	st := newDB.Model(&user).Where("username = ?", username).Where("is_active = ?", true).Take(&user).Error
 	if st != nil {
 		return nil, st
 	}
@@ -87,4 +88,17 @@ func (handle *UserStore) Delete(user *models.Users) error {
 		return err
 	}
 	return newDB.Unscoped().Delete(&user).Error
+}
+
+func (handle *UserStore) List() ([]*models.Users, error) {
+	newDB, err := handle.NewConnection()
+	if err != nil {
+		return nil, err
+	}
+	users := []*models.Users{}
+	listUsers := newDB.Find(&users)
+	if listUsers.Error != nil {
+		return nil, listUsers.Error
+	}
+	return users, nil
 }
