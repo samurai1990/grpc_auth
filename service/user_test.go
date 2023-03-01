@@ -12,10 +12,10 @@ import (
 
 func MockNewUser() *models.Users {
 	return &models.Users{
-		Username: "test",
-		Password: "test",
-		Email:    "test@tes.test",
-		IsActive: false,
+		Username: "test4",
+		Password: "test4",
+		Email:    "test4@tes.test",
+		IsActive: true,
 		IsAdmin:  true,
 	}
 }
@@ -35,4 +35,11 @@ func TestCreateUser(t *testing.T) {
 	log.Println(sampleUser.Password)
 	require.Nil(t, err)
 	require.NotNil(t, newUser)
+}
+
+func TestListUser(t *testing.T) {
+	userStore := db.UserStore{}
+	listUsers, err := userStore.List()
+	require.Nil(t, err)
+	require.NotEmpty(t, listUsers)
 }

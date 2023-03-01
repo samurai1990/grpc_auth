@@ -25,10 +25,10 @@ func FindUser(serStore db.UserStoreInterface, username string) *models.Users {
 	return user
 }
 
-// func (user *User) Clone() *User {
-// 	return &User{
-// 		Username:       user.Username,
-// 		HashedPassword: user.HashedPassword,
-// 		Role:           user.Role,
-// 	}
-// }
+func ListUser(serStore db.UserStoreInterface) []*models.Users {
+	users, err := serStore.List()
+	if err != nil {
+		return nil
+	}
+	return users
+}
