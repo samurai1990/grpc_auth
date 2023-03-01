@@ -2,9 +2,9 @@ package service
 
 import (
 	"fmt"
+	"github.com/golang-jwt/jwt/v4"
 	"go-usermgmt-grpc/db/models"
 	"time"
-	"github.com/golang-jwt/jwt/v4"
 )
 
 type JWTManager struct {
